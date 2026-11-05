@@ -1,0 +1,6 @@
+{
+  "name": "CarePoint Clinic",
+  "description": "Book and manage CarePoint Clinic appointments online.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
