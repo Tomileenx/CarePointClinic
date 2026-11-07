@@ -341,7 +341,7 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
               <RotateCcw className="size-7 text-primary" />
               Reset Appointment Slots
             </DialogTitle>
-            <span className="rounded-full bg-secondary px-4 py-2 text-sm font-medium text-foreground">
+            <span className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-slate-600">
               {LAGOS_TIME_ZONE} (UTC+1)
             </span>
           </div>
@@ -353,394 +353,404 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 mt-2 gap-5">
-          {/* Success notice */}
-          {successResponse && (
-            <div
-              role="status"
-              className="flex items-center justify-between rounded-2xl bg-success-soft px-4 py-3 text-sm text-success"
-            >
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-5 shrink-0" />
-                <div>
-                  <p className="font-semibold">Reset Succeeded</p>
-                  <p className="text-xs opacity-90">{successResponse}</p>
+          {/* Everything between the fixed header and footer scrolls together, so a short
+              viewport can never squash the slot cards. */}
+          <div className="flex flex-col flex-1 min-h-0 gap-5 overflow-y-auto pr-1">
+            {/* Success notice */}
+            {successResponse && (
+              <div
+                role="status"
+                className="flex items-center justify-between rounded-2xl bg-success-soft px-4 py-3 text-sm text-success"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Reset Succeeded</p>
+                    <p className="text-xs opacity-90">{successResponse}</p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  className="h-7 text-xs"
+                >
+                  Close
+                </Button>
+              </div>
+            )}
+
+            {/* Meaningful backend error notice */}
+            {resetMutation.isError && (
+              <div
+                role="alert"
+                className="flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
+              >
+                <AlertCircle className="size-5 shrink-0 mt-0.5 text-destructive" />
+                <div className="space-y-1">
+                  <p className="font-semibold">Reset Failed</p>
+                  <p className="text-xs text-foreground/90 font-mono">
+                    {errorMessage(resetMutation.error)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Check that the backend at <code>https://booking-api-ngrf.onrender.com</code> is
+                    active and accepts POST /reset.
+                  </p>
                 </div>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                className="h-7 text-xs"
-              >
-                Close
-              </Button>
-            </div>
-          )}
+            )}
 
-          {/* Meaningful backend error notice */}
-          {resetMutation.isError && (
+            {/* Warning banner */}
             <div
               role="alert"
-              className="flex items-start gap-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
+              className="flex items-start gap-3 rounded-2xl border border-orange-300 bg-orange-100/60 px-5 py-4"
             >
-              <AlertCircle className="size-5 shrink-0 mt-0.5 text-destructive" />
-              <div className="space-y-1">
-                <p className="font-semibold">Reset Failed</p>
-                <p className="text-xs text-foreground/90 font-mono">
-                  {errorMessage(resetMutation.error)}
+              <TriangleAlert className="size-7 shrink-0 mt-0.5 text-orange-600" />
+              <div>
+                <p className="font-semibold text-lg text-orange-800">
+                  Warning: Destructive Replacement Operation
                 </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Check that the backend at <code>https://booking-api-ngrf.onrender.com</code> is
-                  active and accepts POST /reset.
+                <p className="mt-1 text-base leading-relaxed text-orange-900">
+                  Submitting will permanently delete <strong>ALL existing appointment slots</strong>{" "}
+                  in the database and replace them with only the{" "}
+                  <strong>
+                    {slots.length === 1
+                      ? "1 newly configured slot"
+                      : `${slots.length} newly configured slots`}
+                  </strong>{" "}
+                  entered below.
                 </p>
               </div>
             </div>
-          )}
 
-          {/* Warning banner */}
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-2xl border border-orange-300 bg-orange-100/60 px-5 py-4"
-          >
-            <TriangleAlert className="size-7 shrink-0 mt-0.5 text-orange-600" />
-            <div>
-              <p className="font-semibold text-lg text-orange-800">
-                Warning: Destructive Replacement Operation
-              </p>
-              <p className="mt-1 text-base leading-relaxed text-orange-900">
-                Submitting will permanently delete <strong>ALL existing appointment slots</strong>{" "}
-                in the database and replace them with only the{" "}
-                <strong>
-                  {slots.length === 1
-                    ? "1 newly configured slot"
-                    : `${slots.length} newly configured slots`}
-                </strong>{" "}
-                entered below.
-              </p>
+            {slots.length === 0 && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-6 text-center space-y-2">
+                <p className="text-sm font-medium text-destructive">
+                  No slots configured. At least one slot is required before submitting.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addSlot}
+                  className="gap-1.5"
+                >
+                  <Plus className="size-4" /> Add a slot
+                </Button>
+              </div>
+            )}
+
+            {/* Slots */}
+            <div className="shrink-0 space-y-5">
+              {slots.map((slot, index) => {
+                const rowErrors = errors[index] || {};
+                const startUtc = lagosToUtcIso(slot.startDate, slot.startTime, slot.startPeriod);
+                const endUtc = lagosToUtcIso(slot.endDate, slot.endTime, slot.endPeriod);
+
+                return (
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-[#93c5fd]/70 bg-white shadow-xs overflow-hidden"
+                  >
+                    {/* Card Header Strip: Blue tinted bar, Slot # at left, Remove at right */}
+                    <div className="flex items-center justify-between bg-[#eff6ff]/80 px-6 py-3.5 border-b border-[#dbeafe]">
+                      <div className="flex items-center gap-2.5">
+                        <CalendarDays className="size-5 text-[#0066cc]" />
+                        <span className="text-base font-bold text-slate-900">
+                          Slot #{index + 1}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSlot(index)}
+                        className="h-8 px-2.5 text-sm font-semibold text-[#dc2626] hover:bg-red-50 hover:text-[#b91c1c] gap-1.5 transition-colors"
+                        disabled={resetMutation.isPending}
+                      >
+                        <Trash2 className="size-4 text-[#dc2626]" />
+                        Remove
+                      </Button>
+                    </div>
+
+                    {/* Horizontal 3-field layout: Provider | Start Date & Time | End Date & Time */}
+                    <div className="p-6 grid grid-cols-1 lg:grid-cols-[1fr_1.75fr_1.75fr] lg:divide-x divide-slate-200 gap-5 lg:gap-0">
+                      {/* Column 1: PROVIDER NAME */}
+                      <div className="lg:pr-6 space-y-2">
+                        <Label
+                          htmlFor={`slot-provider-${index}`}
+                          className="text-base font-medium text-slate-900 flex items-center gap-1"
+                        >
+                          Provider Name <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                          <Input
+                            id={`slot-provider-${index}`}
+                            name="provider"
+                            value={slot.provider}
+                            placeholder="Enter provider name"
+                            disabled={resetMutation.isPending}
+                            onChange={(e) => updateSlot(index, "provider", e.target.value)}
+                            className={`h-12 pl-10 pr-3 rounded-xl border text-base bg-white placeholder:text-slate-400 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                              rowErrors.provider
+                                ? "border-destructive focus-visible:ring-destructive"
+                                : "border-slate-200"
+                            }`}
+                          />
+                        </div>
+                        {rowErrors.provider && (
+                          <p className="text-[11px] text-destructive">{rowErrors.provider}</p>
+                        )}
+                      </div>
+
+                      {/* Column 2: START DATE & TIME */}
+                      <div className="lg:px-6 space-y-2">
+                        <Label className="text-base font-medium text-slate-900 flex items-center gap-1">
+                          Start Date & Time <span className="text-red-500">*</span>
+                        </Label>
+
+                        <div className="flex items-center gap-2">
+                          {/* Popover Date Control */}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                id={`slot-start-date-${index}`}
+                                aria-label="Date"
+                                value={slot.startDate}
+                                disabled={resetMutation.isPending}
+                                className={`relative flex items-center justify-between h-12 flex-1 min-w-[130px] rounded-xl border bg-white px-3 text-base transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                  rowErrors.startDate ? "border-destructive" : "border-slate-200"
+                                }`}
+                              >
+                                <div className="flex items-center min-w-0 overflow-hidden">
+                                  <Calendar className="size-4 text-slate-400 shrink-0 mr-2" />
+                                  <span
+                                    className={`truncate ${
+                                      slot.startDate
+                                        ? "font-medium text-slate-900"
+                                        : "text-slate-400"
+                                    }`}
+                                  >
+                                    {slot.startDate
+                                      ? formatDateDisplay(slot.startDate)
+                                      : "Select date"}
+                                  </span>
+                                </div>
+                                <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1.5" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarPicker
+                                mode="single"
+                                selected={parseDateSafely(slot.startDate)}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    const y = date.getFullYear();
+                                    const m = String(date.getMonth() + 1).padStart(2, "0");
+                                    const d = String(date.getDate()).padStart(2, "0");
+                                    updateSlot(index, "startDate", `${y}-${m}-${d}`);
+                                  } else {
+                                    updateSlot(index, "startDate", "");
+                                  }
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+
+                          {/* 12-hour Time Input with Clock and Selector */}
+                          <div
+                            className={`relative flex items-center h-12 w-32 shrink-0 rounded-xl border bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary ${
+                              rowErrors.startTime ? "border-destructive" : "border-slate-200"
+                            }`}
+                          >
+                            <Clock className="size-4 text-slate-400 shrink-0 mr-2 pointer-events-none" />
+                            <input
+                              id={`slot-start-time-${index}`}
+                              type="text"
+                              aria-label="Time (HH:MM)"
+                              placeholder="9:00 AM"
+                              value={slot.startTime}
+                              disabled={resetMutation.isPending}
+                              onChange={(e) => handleTimeChange(index, "startTime", e.target.value)}
+                              className="w-full bg-transparent text-base font-medium text-slate-800 placeholder:text-slate-700 focus:outline-none"
+                            />
+                            <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1 pointer-events-none" />
+                          </div>
+
+                          {/* AM / PM Segmented Toggle */}
+                          <div className="inline-flex h-12 items-center rounded-xl border border-slate-200 bg-slate-100/70 p-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => updateSlot(index, "startPeriod", "AM")}
+                              disabled={resetMutation.isPending}
+                              className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
+                                slot.startPeriod === "AM"
+                                  ? "bg-[#0066cc] text-white shadow-xs"
+                                  : "text-slate-500 hover:text-slate-900"
+                              }`}
+                            >
+                              AM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateSlot(index, "startPeriod", "PM")}
+                              disabled={resetMutation.isPending}
+                              className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
+                                slot.startPeriod === "PM"
+                                  ? "bg-[#0066cc] text-white shadow-xs"
+                                  : "text-slate-500 hover:text-slate-900"
+                              }`}
+                            >
+                              PM
+                            </button>
+                          </div>
+                        </div>
+
+                        {(rowErrors.startDate || rowErrors.startTime) && (
+                          <p className="text-[11px] text-destructive">
+                            {rowErrors.startDate || rowErrors.startTime}
+                          </p>
+                        )}
+                        {startUtc && (
+                          <p className="text-[11px] text-muted-foreground font-mono">
+                            UTC: {startUtc}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Column 3: END DATE & TIME */}
+                      <div className="lg:pl-6 space-y-2">
+                        <Label className="text-base font-medium text-slate-900 flex items-center gap-1">
+                          End Date & Time <span className="text-red-500">*</span>
+                        </Label>
+
+                        <div className="flex items-center gap-2">
+                          {/* Popover Date Control */}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                id={`slot-end-date-${index}`}
+                                aria-label="Date"
+                                value={slot.endDate}
+                                disabled={resetMutation.isPending}
+                                className={`relative flex items-center justify-between h-12 flex-1 min-w-[130px] rounded-xl border bg-white px-3 text-base transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                                  rowErrors.endDate ? "border-destructive" : "border-slate-200"
+                                }`}
+                              >
+                                <div className="flex items-center min-w-0 overflow-hidden">
+                                  <Calendar className="size-4 text-slate-400 shrink-0 mr-2" />
+                                  <span
+                                    className={`truncate ${
+                                      slot.endDate ? "font-medium text-slate-900" : "text-slate-400"
+                                    }`}
+                                  >
+                                    {slot.endDate ? formatDateDisplay(slot.endDate) : "Select date"}
+                                  </span>
+                                </div>
+                                <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1.5" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarPicker
+                                mode="single"
+                                selected={parseDateSafely(slot.endDate)}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    const y = date.getFullYear();
+                                    const m = String(date.getMonth() + 1).padStart(2, "0");
+                                    const d = String(date.getDate()).padStart(2, "0");
+                                    updateSlot(index, "endDate", `${y}-${m}-${d}`);
+                                  } else {
+                                    updateSlot(index, "endDate", "");
+                                  }
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+
+                          {/* 12-hour Time Input with Clock and Selector */}
+                          <div
+                            className={`relative flex items-center h-12 w-32 shrink-0 rounded-xl border bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary ${
+                              rowErrors.endTime ? "border-destructive" : "border-slate-200"
+                            }`}
+                          >
+                            <Clock className="size-4 text-slate-400 shrink-0 mr-2 pointer-events-none" />
+                            <input
+                              id={`slot-end-time-${index}`}
+                              type="text"
+                              aria-label="Time (HH:MM)"
+                              placeholder="9:30 AM"
+                              value={slot.endTime}
+                              disabled={resetMutation.isPending}
+                              onChange={(e) => handleTimeChange(index, "endTime", e.target.value)}
+                              className="w-full bg-transparent text-base font-medium text-slate-800 placeholder:text-slate-700 focus:outline-none"
+                            />
+                            <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1 pointer-events-none" />
+                          </div>
+
+                          {/* AM / PM Segmented Toggle */}
+                          <div className="inline-flex h-12 items-center rounded-xl border border-slate-200 bg-slate-100/70 p-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => updateSlot(index, "endPeriod", "AM")}
+                              disabled={resetMutation.isPending}
+                              className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
+                                slot.endPeriod === "AM"
+                                  ? "bg-[#0066cc] text-white shadow-xs"
+                                  : "text-slate-500 hover:text-slate-900"
+                              }`}
+                            >
+                              AM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateSlot(index, "endPeriod", "PM")}
+                              disabled={resetMutation.isPending}
+                              className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
+                                slot.endPeriod === "PM"
+                                  ? "bg-[#0066cc] text-white shadow-xs"
+                                  : "text-slate-500 hover:text-slate-900"
+                              }`}
+                            >
+                              PM
+                            </button>
+                          </div>
+                        </div>
+
+                        {(rowErrors.endDate || rowErrors.endTime || rowErrors.timing) && (
+                          <p className="text-[11px] text-destructive">
+                            {rowErrors.endDate || rowErrors.endTime || rowErrors.timing}
+                          </p>
+                        )}
+                        {endUtc && (
+                          <p className="text-[11px] text-muted-foreground font-mono">
+                            UTC: {endUtc}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
 
-          {slots.length === 0 && (
-            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-6 text-center space-y-2">
-              <p className="text-sm font-medium text-destructive">
-                No slots configured. At least one slot is required before submitting.
-              </p>
+            {/* Add Another Slot Pill Button (matches reference image with no counter text) */}
+            <div className="shrink-0 pt-2">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                size="lg"
                 onClick={addSlot}
-                className="gap-1.5"
+                disabled={resetMutation.isPending}
+                className="h-12 px-6 rounded-full border border-blue-400 bg-blue-50/60 text-[#0066cc] hover:bg-blue-50 font-semibold text-base gap-2 shadow-xs transition-colors"
               >
-                <Plus className="size-4" /> Add a slot
+                <Plus className="size-5 text-[#0066cc]" /> Add another slot
               </Button>
             </div>
-          )}
-
-          {/* Scrollable Slots Container */}
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-5">
-            {slots.map((slot, index) => {
-              const rowErrors = errors[index] || {};
-              const startUtc = lagosToUtcIso(slot.startDate, slot.startTime, slot.startPeriod);
-              const endUtc = lagosToUtcIso(slot.endDate, slot.endTime, slot.endPeriod);
-
-              return (
-                <div
-                  key={index}
-                  className="rounded-2xl border border-[#93c5fd]/70 bg-white shadow-xs overflow-hidden"
-                >
-                  {/* Card Header Strip: Blue tinted bar, Slot # at left, Remove at right */}
-                  <div className="flex items-center justify-between bg-[#eff6ff]/80 px-6 py-3.5 border-b border-[#dbeafe]">
-                    <div className="flex items-center gap-2.5">
-                      <CalendarDays className="size-5 text-[#0066cc]" />
-                      <span className="text-base font-bold text-slate-900">Slot #{index + 1}</span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeSlot(index)}
-                      className="h-8 px-2.5 text-sm font-semibold text-[#dc2626] hover:bg-red-50 hover:text-[#b91c1c] gap-1.5 transition-colors"
-                      disabled={resetMutation.isPending}
-                    >
-                      <Trash2 className="size-4 text-[#dc2626]" />
-                      Remove
-                    </Button>
-                  </div>
-
-                  {/* Horizontal 3-field layout: Provider | Start Date & Time | End Date & Time */}
-                  <div className="p-6 grid grid-cols-1 lg:grid-cols-[1fr_1.75fr_1.75fr] lg:divide-x divide-slate-200 gap-5 lg:gap-0">
-                    {/* Column 1: PROVIDER NAME */}
-                    <div className="lg:pr-6 space-y-2">
-                      <Label
-                        htmlFor={`slot-provider-${index}`}
-                        className="text-base font-medium text-slate-900 flex items-center gap-1"
-                      >
-                        Provider Name <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
-                        <Input
-                          id={`slot-provider-${index}`}
-                          name="provider"
-                          value={slot.provider}
-                          placeholder="Enter provider name"
-                          disabled={resetMutation.isPending}
-                          onChange={(e) => updateSlot(index, "provider", e.target.value)}
-                          className={`h-12 pl-10 pr-3 rounded-xl border text-base bg-white placeholder:text-slate-400 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                            rowErrors.provider
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : "border-slate-200"
-                          }`}
-                        />
-                      </div>
-                      {rowErrors.provider && (
-                        <p className="text-[11px] text-destructive">{rowErrors.provider}</p>
-                      )}
-                    </div>
-
-                    {/* Column 2: START DATE & TIME */}
-                    <div className="lg:px-6 space-y-2">
-                      <Label className="text-base font-medium text-slate-900 flex items-center gap-1">
-                        Start Date & Time <span className="text-red-500">*</span>
-                      </Label>
-
-                      <div className="flex items-center gap-2">
-                        {/* Popover Date Control */}
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              id={`slot-start-date-${index}`}
-                              aria-label="Date"
-                              value={slot.startDate}
-                              disabled={resetMutation.isPending}
-                              className={`relative flex items-center justify-between h-12 flex-1 min-w-[130px] rounded-xl border bg-white px-3 text-base transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                                rowErrors.startDate ? "border-destructive" : "border-slate-200"
-                              }`}
-                            >
-                              <div className="flex items-center min-w-0 overflow-hidden">
-                                <Calendar className="size-4 text-slate-400 shrink-0 mr-2" />
-                                <span
-                                  className={`truncate ${
-                                    slot.startDate ? "font-medium text-slate-900" : "text-slate-400"
-                                  }`}
-                                >
-                                  {slot.startDate
-                                    ? formatDateDisplay(slot.startDate)
-                                    : "Select date"}
-                                </span>
-                              </div>
-                              <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1.5" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <CalendarPicker
-                              mode="single"
-                              selected={parseDateSafely(slot.startDate)}
-                              onSelect={(date) => {
-                                if (date) {
-                                  const y = date.getFullYear();
-                                  const m = String(date.getMonth() + 1).padStart(2, "0");
-                                  const d = String(date.getDate()).padStart(2, "0");
-                                  updateSlot(index, "startDate", `${y}-${m}-${d}`);
-                                } else {
-                                  updateSlot(index, "startDate", "");
-                                }
-                              }}
-                            />
-                          </PopoverContent>
-                        </Popover>
-
-                        {/* 12-hour Time Input with Clock and Selector */}
-                        <div
-                          className={`relative flex items-center h-12 w-32 shrink-0 rounded-xl border bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary ${
-                            rowErrors.startTime ? "border-destructive" : "border-slate-200"
-                          }`}
-                        >
-                          <Clock className="size-4 text-slate-400 shrink-0 mr-2 pointer-events-none" />
-                          <input
-                            id={`slot-start-time-${index}`}
-                            type="text"
-                            aria-label="Time (HH:MM)"
-                            placeholder="9:00 AM"
-                            value={slot.startTime}
-                            disabled={resetMutation.isPending}
-                            onChange={(e) => handleTimeChange(index, "startTime", e.target.value)}
-                            className="w-full bg-transparent text-base font-medium text-slate-800 placeholder:text-slate-700 focus:outline-none"
-                          />
-                          <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1 pointer-events-none" />
-                        </div>
-
-                        {/* AM / PM Segmented Toggle */}
-                        <div className="inline-flex h-12 items-center rounded-xl border border-slate-200 bg-slate-100/70 p-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => updateSlot(index, "startPeriod", "AM")}
-                            disabled={resetMutation.isPending}
-                            className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
-                              slot.startPeriod === "AM"
-                                ? "bg-[#0066cc] text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-900"
-                            }`}
-                          >
-                            AM
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateSlot(index, "startPeriod", "PM")}
-                            disabled={resetMutation.isPending}
-                            className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
-                              slot.startPeriod === "PM"
-                                ? "bg-[#0066cc] text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-900"
-                            }`}
-                          >
-                            PM
-                          </button>
-                        </div>
-                      </div>
-
-                      {(rowErrors.startDate || rowErrors.startTime) && (
-                        <p className="text-[11px] text-destructive">
-                          {rowErrors.startDate || rowErrors.startTime}
-                        </p>
-                      )}
-                      {startUtc && (
-                        <p className="text-[11px] text-muted-foreground font-mono">
-                          UTC: {startUtc}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Column 3: END DATE & TIME */}
-                    <div className="lg:pl-6 space-y-2">
-                      <Label className="text-base font-medium text-slate-900 flex items-center gap-1">
-                        End Date & Time <span className="text-red-500">*</span>
-                      </Label>
-
-                      <div className="flex items-center gap-2">
-                        {/* Popover Date Control */}
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              id={`slot-end-date-${index}`}
-                              aria-label="Date"
-                              value={slot.endDate}
-                              disabled={resetMutation.isPending}
-                              className={`relative flex items-center justify-between h-12 flex-1 min-w-[130px] rounded-xl border bg-white px-3 text-base transition-colors text-left focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                                rowErrors.endDate ? "border-destructive" : "border-slate-200"
-                              }`}
-                            >
-                              <div className="flex items-center min-w-0 overflow-hidden">
-                                <Calendar className="size-4 text-slate-400 shrink-0 mr-2" />
-                                <span
-                                  className={`truncate ${
-                                    slot.endDate ? "font-medium text-slate-900" : "text-slate-400"
-                                  }`}
-                                >
-                                  {slot.endDate ? formatDateDisplay(slot.endDate) : "Select date"}
-                                </span>
-                              </div>
-                              <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1.5" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <CalendarPicker
-                              mode="single"
-                              selected={parseDateSafely(slot.endDate)}
-                              onSelect={(date) => {
-                                if (date) {
-                                  const y = date.getFullYear();
-                                  const m = String(date.getMonth() + 1).padStart(2, "0");
-                                  const d = String(date.getDate()).padStart(2, "0");
-                                  updateSlot(index, "endDate", `${y}-${m}-${d}`);
-                                } else {
-                                  updateSlot(index, "endDate", "");
-                                }
-                              }}
-                            />
-                          </PopoverContent>
-                        </Popover>
-
-                        {/* 12-hour Time Input with Clock and Selector */}
-                        <div
-                          className={`relative flex items-center h-12 w-32 shrink-0 rounded-xl border bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary ${
-                            rowErrors.endTime ? "border-destructive" : "border-slate-200"
-                          }`}
-                        >
-                          <Clock className="size-4 text-slate-400 shrink-0 mr-2 pointer-events-none" />
-                          <input
-                            id={`slot-end-time-${index}`}
-                            type="text"
-                            aria-label="Time (HH:MM)"
-                            placeholder="9:30 AM"
-                            value={slot.endTime}
-                            disabled={resetMutation.isPending}
-                            onChange={(e) => handleTimeChange(index, "endTime", e.target.value)}
-                            className="w-full bg-transparent text-base font-medium text-slate-800 placeholder:text-slate-700 focus:outline-none"
-                          />
-                          <ChevronsUpDown className="size-3.5 text-slate-400 shrink-0 ml-1 pointer-events-none" />
-                        </div>
-
-                        {/* AM / PM Segmented Toggle */}
-                        <div className="inline-flex h-12 items-center rounded-xl border border-slate-200 bg-slate-100/70 p-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => updateSlot(index, "endPeriod", "AM")}
-                            disabled={resetMutation.isPending}
-                            className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
-                              slot.endPeriod === "AM"
-                                ? "bg-[#0066cc] text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-900"
-                            }`}
-                          >
-                            AM
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateSlot(index, "endPeriod", "PM")}
-                            disabled={resetMutation.isPending}
-                            className={`h-full px-3.5 text-xs font-bold rounded-lg transition-colors ${
-                              slot.endPeriod === "PM"
-                                ? "bg-[#0066cc] text-white shadow-xs"
-                                : "text-slate-500 hover:text-slate-900"
-                            }`}
-                          >
-                            PM
-                          </button>
-                        </div>
-                      </div>
-
-                      {(rowErrors.endDate || rowErrors.endTime || rowErrors.timing) && (
-                        <p className="text-[11px] text-destructive">
-                          {rowErrors.endDate || rowErrors.endTime || rowErrors.timing}
-                        </p>
-                      )}
-                      {endUtc && (
-                        <p className="text-[11px] text-muted-foreground font-mono">UTC: {endUtc}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Add Another Slot Pill Button (matches reference image with no counter text) */}
-          <div className="pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={addSlot}
-              disabled={resetMutation.isPending}
-              className="h-12 px-6 rounded-full border border-blue-400 bg-blue-50/60 text-[#0066cc] hover:bg-blue-50 font-semibold text-base gap-2 shadow-xs transition-colors"
-            >
-              <Plus className="size-5 text-[#0066cc]" /> Add another slot
-            </Button>
           </div>
 
           {/* Dialog Footer Actions */}
