@@ -1,5 +1,6 @@
 import type {
   AppointmentSlot,
+  AppointmentSlotResetRequest,
   BookingPage,
   BookingRequest,
   BookingResponse,
@@ -10,9 +11,16 @@ import {
   proxyGetBooking,
   proxyListBookings,
   proxyListSlots,
+  proxyResetSlots,
 } from "@/lib/booking-api.functions";
 import { unwrap } from "./apiClient";
-import { slotSchema, bookingResponseSchema, bookingPageSchema } from "@/lib/booking-schemas";
+import {
+  slotSchema,
+  bookingResponseSchema,
+  bookingPageSchema,
+  resetSlotsResponseSchema,
+} from "@/lib/booking-schemas";
+import { z } from "zod";
 
 export const bookingService = {
   async listSlots(provider?: string): Promise<AppointmentSlot[]> {
@@ -35,6 +43,13 @@ export const bookingService = {
     return unwrap(
       proxyListBookings({ data: { email, limit, ...(cursor ? { cursor } : {}) } }),
       bookingPageSchema,
+      200,
+    );
+  },
+  async resetSlots(req: AppointmentSlotResetRequest): Promise<AppointmentSlot[] | string> {
+    return unwrap(
+      proxyResetSlots({ data: req }),
+      resetSlotsResponseSchema.or(z.unknown().transform(() => "Done")),
       200,
     );
   },

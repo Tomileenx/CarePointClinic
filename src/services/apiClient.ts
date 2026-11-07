@@ -37,63 +37,67 @@ export function errorFromStatus(status: number, apiMessage?: string, code?: stri
     case 400:
       return new ApiError(
         "validation",
-        msg("Some details were not accepted. Please check and try again."),
+        msg("The request was rejected by the backend (400 Bad Request). Please check your inputs."),
         status,
         code,
       );
     case 401:
       return new ApiError(
         "unauthorized",
-        "The booking service rejected this site's credentials.",
+        msg("The booking service rejected this site's API credentials (401 Unauthorized)."),
         status,
         code,
       );
     case 403:
-      return new ApiError(
-        "forbidden",
-        "You are not permitted to perform this action.",
-        status,
-        code,
-      );
+      return new ApiError("forbidden", msg("Access forbidden (403 Forbidden)."), status, code);
     case 404:
       return new ApiError(
         "notFound",
-        msg("We couldn't find what you were looking for."),
+        msg("The requested resource was not found (404 Not Found)."),
         status,
         code,
       );
     case 409:
       return new ApiError(
         "conflict",
-        msg("This conflicts with an existing booking."),
+        msg("Conflict with existing booking data (409 Conflict)."),
         status,
         code,
       );
     case 422:
       return new ApiError(
         "unprocessable",
-        msg("That slot can no longer be booked. Please choose another time."),
+        msg("That slot can no longer be processed (422 Unprocessable)."),
         status,
         code,
       );
     case 429:
       return new ApiError(
         "rateLimited",
-        "Too many requests. Please wait a moment before trying again.",
+        msg("Too many requests (429 Rate Limit). Please wait a moment before trying again."),
         status,
         code,
       );
+    case 500:
+      return new ApiError(
+        "server",
+        msg("Internal server error from booking API (500). Please check backend logs."),
+        status,
+        code,
+      );
+    case 502:
     case 503:
+    case 504:
       return new ApiError(
         "unavailable",
-        "The booking service is temporarily unavailable. Please try again shortly.",
+        msg(`The booking service is unavailable (HTTP ${status}). Please try again shortly.`),
         status,
         code,
       );
     default:
       return new ApiError(
         "server",
-        "Something went wrong on our side. Please try again.",
+        apiMessage || `Booking service error (HTTP ${status}). Please try again.`,
         status,
         code,
       );
@@ -110,12 +114,13 @@ export async function unwrap<T>(
   try {
     res = await call;
   } catch (error) {
-    if (error instanceof Error && error.name === "ZodError")
-      throw new ApiError(
-        "validation",
-        "Some details were not accepted. Please check and try again.",
-        400,
-      );
+    if (error instanceof ApiError) throw error;
+    if (error instanceof Error) {
+      if (error.name === "ZodError" || error.message.includes("validation")) {
+        throw new ApiError("validation", `Validation error: ${error.message}`, 400);
+      }
+      throw new ApiError("network", error.message || "Failed to reach booking service.");
+    }
     throw new ApiError(
       "network",
       "We couldn't reach the booking service. Check your connection and try again.",
@@ -125,17 +130,19 @@ export async function unwrap<T>(
     if (res.status !== expectedStatus)
       throw new ApiError(
         "server",
-        "The booking service returned an unexpected response status.",
+        `The booking service returned HTTP ${res.status} (expected ${expectedStatus}).`,
         res.status,
       );
     try {
-      const result = schema.safeParse(JSON.parse(res.json));
-      if (!result.success) throw new Error("Invalid response");
+      const parsedJson = JSON.parse(res.json);
+      const result = schema.safeParse(parsedJson);
+      if (!result.success) throw new Error("Invalid response format");
       return result.data;
     } catch {
       throw new ApiError(
         "server",
-        "The booking service returned an incomplete or unreadable response.",
+        `The booking service returned an unexpected response format: ${String(res.json).slice(0, 100)}`,
+        res.status,
       );
     }
   }

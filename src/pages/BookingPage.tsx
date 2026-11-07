@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarCheck, CheckCircle2, Clock, Loader2, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarCheck,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  RotateCcw,
+  Search,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResetSlotsDialog } from "@/components/booking/ResetSlotsDialog";
+
 import { SlotPicker } from "@/components/booking/SlotPicker";
 import { DetailRow, ErrorNotice, StatusBadge } from "@/components/booking/Feedback";
 import { bookingService } from "@/services/bookingService";
@@ -14,10 +24,12 @@ import { IdempotencyKeys } from "@/lib/idempotency";
 import {
   formatDate,
   formatTime,
+  isSlotAvailable,
   validateBooking,
   type BookingFormErrors,
   type BookingFormValues,
 } from "@/lib/booking-utils";
+
 import type { AppointmentSlot, BookingRequest, BookingResponse } from "@/types/booking";
 
 export const slotsQueryKey = ["slots"] as const;
@@ -42,6 +54,7 @@ export function BookingPage() {
   const [selected, setSelected] = useState<AppointmentSlot | null>(null);
   const [values, setValues] = useState<BookingFormValues>({ name: "", email: "" });
   const [errors, setErrors] = useState<BookingFormErrors>({});
+
   const [confirmed, setConfirmed] = useState<Confirmed | null>(null);
 
   useEffect(() => {
@@ -87,7 +100,7 @@ export function BookingPage() {
     if (
       selected &&
       slotsQuery.data &&
-      !slotsQuery.data.some((s) => s.id === selected.id && s.available)
+      !slotsQuery.data.some((s) => s.id === selected.id && isSlotAvailable(s))
     ) {
       setSelected(null);
       setErrors((e) => ({
@@ -98,7 +111,7 @@ export function BookingPage() {
   }, [selected, slotsQuery.data]);
 
   const selectSlot = (s: AppointmentSlot) => {
-    if (!s.available || create.isPending) return;
+    if (!isSlotAvailable(s) || create.isPending) return;
     keys.current.reset();
     setSelected(s);
     setErrors((e) => ({ ...e, slot: undefined }));
@@ -152,32 +165,35 @@ export function BookingPage() {
                 />
               )}
             </h2>
-            {knownProviders.length > 1 && (
-              <div className="flex items-center gap-2 text-sm">
-                <label
-                  htmlFor="provider-filter"
-                  className="text-xs font-medium text-muted-foreground"
-                >
-                  Provider:
-                </label>
-                <select
-                  id="provider-filter"
-                  value={providerFilter}
-                  onChange={(e) => {
-                    setProviderFilter(e.target.value);
-                    setSelected(null);
-                  }}
-                  className="h-8 rounded-lg border border-input bg-card px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">All providers</option>
-                  {knownProviders.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {knownProviders.length > 1 && (
+                <div className="flex items-center gap-2 text-sm">
+                  <label
+                    htmlFor="provider-filter"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Provider:
+                  </label>
+                  <select
+                    id="provider-filter"
+                    value={providerFilter}
+                    onChange={(e) => {
+                      setProviderFilter(e.target.value);
+                      setSelected(null);
+                    }}
+                    className="h-8 rounded-lg border border-input bg-card px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">All providers</option>
+                    {knownProviders.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <ResetSlotsDialog onSuccess={() => setSelected(null)} />
+            </div>
           </div>
 
           {slotsQuery.isPending ? (

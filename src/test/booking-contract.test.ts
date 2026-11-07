@@ -5,8 +5,11 @@ import {
   bookingRequestSchema,
   bookingResponseSchema,
   createBookingSchema,
+  resetSlotsRequestSchema,
+  resetSlotsResponseSchema,
   slotsRequestSchema,
 } from "@/lib/booking-schemas";
+
 import { errorFromStatus, unwrap } from "@/services/apiClient";
 
 const booking = {
@@ -81,6 +84,83 @@ describe("documented booking contract", () => {
     expect(bookingPageSchema.safeParse({ items: [booking], next_cursor: null }).success).toBe(true);
     expect(bookingPageSchema.safeParse(booking).success).toBe(false);
   });
+  it("validates reset slots request schema", () => {
+    expect(resetSlotsRequestSchema.safeParse({}).success).toBe(false);
+    expect(resetSlotsRequestSchema.safeParse({ slots: [] }).success).toBe(true);
+    expect(
+      resetSlotsRequestSchema.safeParse({
+        slots: [
+          {
+            id: "s1",
+            provider: "Dr Ade",
+            start: "2026-11-06T09:00:00Z",
+            end: "2026-11-06T09:30:00Z",
+          },
+        ],
+      }).success,
+    ).toBe(true);
+    expect(resetSlotsRequestSchema.safeParse({ unexpected: true }).success).toBe(false);
+  });
+
+  it("validates slots without id allowing backend UUID generation", () => {
+    const payloadWithoutId = {
+      slots: [
+        {
+          provider: "Dr Anu",
+          start: "2026-11-10T09:00:00Z",
+          end: "2026-11-10T09:30:00Z",
+        },
+      ],
+    };
+    const parsed = resetSlotsRequestSchema.safeParse(payloadWithoutId);
+    expect(parsed.success).toBe(true);
+  });
+
+  it("validates submitting 3 new slots in AppointmentSlotResetRequest format", () => {
+    const threeSlotsPayload = {
+      slots: [
+        {
+          provider: "Dr Sarah Jenkins",
+          start: "2026-11-10T09:00:00Z",
+          end: "2026-11-10T09:30:00Z",
+        },
+        {
+          provider: "Dr Sarah Jenkins",
+          start: "2026-11-10T09:30:00Z",
+          end: "2026-11-10T10:00:00Z",
+        },
+        {
+          provider: "Dr Marcus Vance",
+          start: "2026-11-10T10:00:00Z",
+          end: "2026-11-10T10:30:00Z",
+        },
+      ],
+    };
+    const parsed = resetSlotsRequestSchema.safeParse(threeSlotsPayload);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.slots).toHaveLength(3);
+      expect(parsed.data.slots[0].provider).toBe("Dr Sarah Jenkins");
+      expect(parsed.data.slots[1].provider).toBe("Dr Sarah Jenkins");
+      expect(parsed.data.slots[2].provider).toBe("Dr Marcus Vance");
+    }
+  });
+
+  it("handles reset response as slots array, wrapped object, or plain string", () => {
+    const directArray = [
+      {
+        id: "slot-1",
+        provider: "Dr Sarah Jenkins",
+        start: "2026-11-10T09:00:00Z",
+        end: "2026-11-10T09:30:00Z",
+        available: true,
+      },
+    ];
+    expect(resetSlotsResponseSchema.safeParse(directArray).success).toBe(true);
+    expect(resetSlotsResponseSchema.safeParse({ slots: directArray }).success).toBe(true);
+    expect(resetSlotsResponseSchema.safeParse("Done").success).toBe(true);
+  });
+
   it.each([
     [400, "validation"],
     [404, "notFound"],

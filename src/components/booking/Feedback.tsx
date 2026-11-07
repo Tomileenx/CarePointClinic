@@ -3,8 +3,16 @@ import { Button } from "@/components/ui/button";
 import type { BookingStatus } from "@/types/booking";
 import { ApiError } from "@/services/apiClient";
 
-export function errorMessage(err: unknown) {
-  return err instanceof ApiError ? err.message : "Something unexpected happened. Please try again.";
+export function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string" && err.trim()) return err;
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    if (typeof o["message"] === "string" && o["message"].trim()) return o["message"];
+    if (typeof o["error"] === "string" && o["error"].trim()) return o["error"];
+  }
+  return "Something unexpected happened. Please try again.";
 }
 
 export function ErrorNotice({

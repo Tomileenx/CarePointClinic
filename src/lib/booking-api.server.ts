@@ -53,15 +53,29 @@ export async function callBookingApi(
   }
 
   if (!res.ok) {
-    const b = (body && typeof body === "object" ? body : {}) as { error?: unknown; code?: unknown };
-    console.error("Booking API error", res.status);
+    const b = (body && typeof body === "object" ? body : {}) as {
+      error?: unknown;
+      message?: unknown;
+      code?: unknown;
+    };
+    const errText =
+      typeof b.error === "string"
+        ? b.error
+        : typeof b.message === "string"
+          ? b.message
+          : typeof text === "string" && text.length < 200 && !text.startsWith("<")
+            ? text
+            : undefined;
+    console.error("Booking API error", res.status, errText);
     return {
       ok: false,
       status: res.status,
       // Only pass through short, string error messages — never raw bodies.
-      ...(typeof b.error === "string" && b.error.length < 200 ? { error: b.error } : {}),
+      ...(errText ? { error: errText } : {}),
       ...(typeof b.code === "string" && b.code.length < 64 ? { code: b.code } : {}),
     };
   }
-  return { ok: true, status: res.status, json: text };
+
+  const json = body === undefined && text ? JSON.stringify(text) : text;
+  return { ok: true, status: res.status, json };
 }

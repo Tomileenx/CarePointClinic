@@ -21,6 +21,18 @@ export const createBookingSchema = bookingRequestSchema.extend({
   idempotencyKey: z.string().uuid(),
 });
 
+export const slotInputSchema = z.object({
+  provider: z.string().trim().min(1, "Provider name is required"),
+  start: z.string().trim().min(1, "Start time is required"),
+  end: z.string().trim().min(1, "End time is required"),
+});
+
+export const resetSlotsRequestSchema = z
+  .object({
+    slots: z.array(slotInputSchema),
+  })
+  .strict();
+
 const timestamp = z
   .string()
   .datetime({ offset: true })
@@ -36,8 +48,14 @@ export const slotSchema = z.object({
   provider: z.string(),
   start: timestamp,
   end: timestamp,
-  available: z.boolean(),
+  available: z.boolean().optional().default(true),
 });
+
+export const resetSlotsResponseSchema = z.union([
+  slotSchema.array(),
+  z.object({ slots: slotSchema.array() }).transform((v) => v.slots),
+  z.string(),
+]);
 export const bookingResponseSchema = z.object({
   id: z.string(),
   slotId: z.string(),

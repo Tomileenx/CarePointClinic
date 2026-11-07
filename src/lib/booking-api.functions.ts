@@ -4,6 +4,7 @@ import {
   bookingIdSchema,
   bookingsRequestSchema,
   createBookingSchema,
+  resetSlotsRequestSchema,
   slotsRequestSchema,
 } from "./booking-schemas";
 
@@ -45,3 +46,12 @@ export const proxyListBookings = createServerFn({ method: "GET" })
     if (data.cursor) q.set("cursor", data.cursor);
     return callBookingApi(`/bookings?${q}`);
   });
+
+export const proxyResetSlots = createServerFn({ method: "POST" })
+  .inputValidator((d) => resetSlotsRequestSchema.parse(d))
+  .handler(async ({ data }) =>
+    callBookingApi("/reset", {
+      method: "POST",
+      body: { slots: data.slots },
+    }),
+  );

@@ -42,3 +42,16 @@ export interface ApiErrorResponse {
   code?: string;
   now?: string;
 }
+
+/** components.schemas.SlotInput */
+export interface SlotInput {
+  id?: string;
+  provider: string;
+  start: string;
+  end: string;
+}
+
+/** components.schemas.AppointmentSlotResetRequest */
+export interface AppointmentSlotResetRequest {
+  slots: SlotInput[];
+}
