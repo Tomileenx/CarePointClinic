@@ -869,7 +869,7 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
             >
               {resetMutation.isPending ? (
                 <>
-                  <Loader2 className="size-5 animate-spin" /> Resetting backend…
+                  <Loader2 className="size-5 animate-spin" /> Resetting…
                 </>
               ) : (
                 <>
