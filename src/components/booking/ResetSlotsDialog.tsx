@@ -518,8 +518,6 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
             <div className="shrink-0 space-y-5">
               {slots.map((slot, index) => {
                 const rowErrors = errors[index] || {};
-                const startUtc = lagosToUtcIso(slot.startDate, slot.startTime, slot.startPeriod);
-                const endUtc = lagosToUtcIso(slot.endDate, slot.endTime, slot.endPeriod);
 
                 return (
                   <div
@@ -691,11 +689,6 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
                             {rowErrors.startDate || rowErrors.startTime}
                           </p>
                         )}
-                        {startUtc && (
-                          <p className="text-[11px] text-muted-foreground font-mono break-all">
-                            UTC: {startUtc}
-                          </p>
-                        )}
                       </div>
 
                       {/* Column 3: END DATE & TIME */}
@@ -805,11 +798,6 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
                         {(rowErrors.endDate || rowErrors.endTime || rowErrors.timing) && (
                           <p className="text-[11px] text-destructive">
                             {rowErrors.endDate || rowErrors.endTime || rowErrors.timing}
-                          </p>
-                        )}
-                        {endUtc && (
-                          <p className="text-[11px] text-muted-foreground font-mono break-all">
-                            UTC: {endUtc}
                           </p>
                         )}
                       </div>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dateKey,
+  formatDateTime,
   formatTime,
   groupSlotsByDate,
   isSlotAvailable,
@@ -10,16 +11,31 @@ import {
 import type { AppointmentSlot } from "@/types/booking";
 
 describe("appointment time display", () => {
-  it("shows 09:00 UTC as 09:00", () => {
-    expect(formatTime("2026-11-02T09:00:00Z")).toBe("09:00");
+  it("shows 08:00 UTC as 9:00 AM Lagos time", () => {
+    expect(formatTime("2026-11-02T08:00:00Z")).toBe("9:00 AM");
+    expect(formatTime("2026-11-02T08:30:00Z")).toBe("9:30 AM");
   });
 
   it("respects timestamps already carrying an offset", () => {
-    expect(formatTime("2026-11-02T16:30:00+01:00")).toBe("16:30");
+    expect(formatTime("2026-11-02T16:30:00+01:00")).toBe("4:30 PM");
   });
 
-  it("groups slots by the backend's calendar date", () => {
-    expect(dateKey("2026-11-02T09:00:00Z")).toBe("2026-11-02");
+  it("always uses a 12-hour clock, including midnight and noon", () => {
+    // 12:00 AM Lagos is 23:00 UTC the previous day, and must not be shown as 23:00
+    expect(formatTime("2026-11-01T23:00:00Z")).toBe("12:00 AM");
+    expect(formatTime("2026-11-01T23:30:00Z")).toBe("12:30 AM");
+    expect(formatTime("2026-11-02T11:00:00Z")).toBe("12:00 PM");
+    expect(formatTime("2026-11-02T22:00:00Z")).toBe("11:00 PM");
+  });
+
+  it("formats a date and 12-hour time together in Lagos time", () => {
+    expect(formatDateTime("2026-11-02T08:00:00Z")).toBe("Nov 2, 2026, 9:00 AM");
+  });
+
+  it("groups slots by the clinic's (Lagos) calendar date", () => {
+    expect(dateKey("2026-11-02T08:00:00Z")).toBe("2026-11-02");
+    // 12:00 AM on 2 Nov in Lagos is 23:00 UTC on 1 Nov, but belongs to 2 Nov
+    expect(dateKey("2026-11-01T23:00:00Z")).toBe("2026-11-02");
   });
 
   it("identifies past slots as unavailable", () => {

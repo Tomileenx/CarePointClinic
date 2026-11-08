@@ -33,19 +33,24 @@ export function isSlotAvailable(slot: AppointmentSlot, now = new Date()): boolea
 }
 
 /**
- * Clinic timezone configuration. The backend stores UTC timestamps matching clinic hours.
+ * Clinic timezone. The backend stores UTC timestamps; everything the user sees (slot times,
+ * dates, grouping by day) is shown in Africa/Lagos (UTC+1, no daylight saving) so that a slot
+ * entered as 9:00 AM in the reset form is displayed as 9:00 AM, not as its UTC value.
  */
-export const CLINIC_TIME_ZONE = "UTC";
+export const CLINIC_TIME_ZONE = "Africa/Lagos";
 
+/** The clinic's calendar day (YYYY-MM-DD) for a timestamp, e.g. 12:00 AM Lagos is the new day. */
 export function dateKey(iso: string) {
-  const match = iso.match(/^(\d{4}-\d{2}-\d{2})/);
-  if (match && match[1]) return match[1];
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) {
+    return iso.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? "";
+  }
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: CLINIC_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date(iso));
+  }).formatToParts(date);
   const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
@@ -77,27 +82,36 @@ export const formatShortDate = (iso: string) =>
     month: "short",
     timeZone: CLINIC_TIME_ZONE,
   });
+/** Clinic-local time in 12-hour format, e.g. "9:00 AM", "12:00 AM" (midnight), "12:30 PM". */
 export const formatTime = (iso: string) => {
-  const match = iso.match(/T(\d{2}:\d{2})/);
-  if (match && match[1]) return match[1];
-  return new Date(iso).toLocaleTimeString(undefined, {
-    hour: "2-digit",
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return iso;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
     minute: "2-digit",
-    hour12: false,
+    hour12: true,
     timeZone: CLINIC_TIME_ZONE,
-  });
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("hour")}:${part("minute")} ${part("dayPeriod").toUpperCase()}`;
 };
-export const formatDateTime = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
+/** Clinic-local date and 12-hour time, e.g. "Nov 2, 2026, 9:00 AM". */
+export const formatDateTime = (iso: string) => {
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return iso;
+  const day = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
     timeZone: CLINIC_TIME_ZONE,
   });
+  return `${day}, ${formatTime(iso)}`;
+};
 
 /**
  * Lagos timezone (West Africa Time, UTC+1, strictly no daylight saving).
  */
-export const LAGOS_TIME_ZONE = "Africa/Lagos";
+export const LAGOS_TIME_ZONE = CLINIC_TIME_ZONE;
 
 /**
  * Converts a date (YYYY-MM-DD), 12-hour time (HH:MM or H:MM), and AM/PM in Africa/Lagos timezone
