@@ -114,9 +114,14 @@ export function BookingPage() {
   const selectSlot = (s: AppointmentSlot) => {
     if (!isSlotAvailable(s) || create.isPending) return;
     keys.current.reset();
-    setSelected(s);
     setErrors((e) => ({ ...e, slot: undefined }));
     create.reset();
+    // Toggle: clicking the already-selected slot unselects it.
+    if (selected?.id === s.id) {
+      setSelected(null);
+      return;
+    }
+    setSelected(s);
     if (window.innerWidth < 1024)
       setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   };
