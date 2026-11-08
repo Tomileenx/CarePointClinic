@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -207,6 +207,13 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
   const [slots, setSlots] = useState<SlotFormEntry[]>([createEmptySlot()]);
   const [errors, setErrors] = useState<Record<number, SlotEntryErrors>>({});
   const [successResponse, setSuccessResponse] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // On phones the whole dialog scrolls, so bring it back to the top; the success
+  // panel is centred over the visible form from there.
+  useEffect(() => {
+    if (successResponse) contentRef.current?.scrollTo({ top: 0 });
+  }, [successResponse]);
 
   const initializeSlots = () => {
     setSuccessResponse(null);
@@ -417,7 +424,10 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="w-[95vw] max-w-[1200px] sm:max-w-[1200px] max-h-[95dvh] flex flex-col gap-0 overflow-y-auto sm:overflow-hidden rounded-2xl sm:rounded-3xl bg-card px-4 pt-4 pb-0 sm:p-6 lg:p-8 border border-border shadow-2xl">
+      <DialogContent
+        ref={contentRef}
+        className="w-[95vw] max-w-[1200px] sm:max-w-[1200px] max-h-[95dvh] flex flex-col gap-0 overflow-y-auto sm:overflow-hidden rounded-2xl sm:rounded-3xl bg-card px-4 pt-4 pb-0 sm:p-6 lg:p-8 border border-border shadow-2xl"
+      >
         <DialogHeader className="pb-4">
           <div className="flex flex-col items-start gap-3 pr-8 sm:flex-row sm:items-center sm:justify-between">
             <DialogTitle className="flex items-center gap-3 text-2xl sm:text-3xl font-display text-foreground font-medium tracking-tight">
@@ -444,31 +454,6 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
           {/* Everything between the fixed header and footer scrolls together, so a short
               viewport can never squash the slot cards. */}
           <div className="flex flex-col shrink-0 sm:shrink sm:flex-1 sm:min-h-0 gap-5 sm:overflow-y-auto sm:pr-1">
-            {/* Success notice */}
-            {successResponse && (
-              <div
-                role="status"
-                className="flex items-center justify-between rounded-2xl bg-success-soft px-4 py-3 text-sm text-success"
-              >
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-5 shrink-0" />
-                  <div>
-                    <p className="font-semibold">Reset Succeeded</p>
-                    <p className="text-xs opacity-90">{successResponse}</p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  className="h-7 text-xs"
-                >
-                  Close
-                </Button>
-              </div>
-            )}
-
             {/* Meaningful backend error notice */}
             {resetMutation.isError && (
               <div
@@ -880,6 +865,31 @@ export function ResetSlotsDialog({ onSuccess }: Props) {
             </Button>
           </DialogFooter>
         </form>
+
+        {/* Success message: centred over the form instead of a banner at the top */}
+        {successResponse && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="absolute inset-0 z-20 flex items-center justify-center rounded-[inherit] bg-card/80 p-4 backdrop-blur-sm"
+          >
+            <div className="w-full max-w-md rounded-2xl border border-success/30 bg-success-soft px-6 py-8 text-center shadow-lg">
+              <CheckCircle2 className="mx-auto size-12 text-success" aria-hidden />
+              <p className="mt-3 text-xl font-semibold text-success">Reset Succeeded</p>
+              <p className="mt-1 text-sm text-success/90">{successResponse}</p>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                autoFocus
+                onClick={() => setOpen(false)}
+                className="mt-6 h-11 rounded-xl bg-white px-10 font-semibold"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
