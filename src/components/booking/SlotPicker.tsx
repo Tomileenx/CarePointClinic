@@ -95,6 +95,7 @@ export function SlotPicker({ slots, selectedId, onSelect }: Props) {
                   type="button"
                   disabled={!available}
                   aria-pressed={selected}
+                  title={selected ? "Click to unselect" : undefined}
                   aria-label={`${formatDate(s.start)} at ${formatTime(s.start)} with ${s.provider}, ${available ? "available" : "unavailable"}`}
                   onClick={() => onSelect(s)}
                   className={`relative flex h-auto w-full flex-col items-start gap-0 rounded-lg border px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
