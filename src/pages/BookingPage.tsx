@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResetSlotsDialog } from "@/components/booking/ResetSlotsDialog";
+import { ProviderSearch } from "@/components/booking/ProviderSearch";
 
 import { SlotPicker } from "@/components/booking/SlotPicker";
 import { DetailRow, ErrorNotice, StatusBadge } from "@/components/booking/Feedback";
@@ -174,22 +175,15 @@ export function BookingPage() {
                   >
                     Provider:
                   </label>
-                  <select
+                  <ProviderSearch
                     id="provider-filter"
+                    providers={knownProviders}
                     value={providerFilter}
-                    onChange={(e) => {
-                      setProviderFilter(e.target.value);
+                    onChange={(provider) => {
+                      setProviderFilter(provider);
                       setSelected(null);
                     }}
-                    className="h-8 rounded-lg border border-input bg-card px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">All providers</option>
-                    {knownProviders.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               )}
               <ResetSlotsDialog onSuccess={() => setSelected(null)} />
